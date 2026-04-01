@@ -269,6 +269,8 @@ export default function LearnPage() {
               ) : activeLesson.contentType === 'VIDEO' && activeLesson.contentUrl ? (
                 <div className="rounded-2xl overflow-hidden" style={{ background: 'black', border: '1px solid var(--border)' }}>
                   <video
+                    key={activeLesson.id}
+                    src={activeLesson.contentUrl}
                     controls
                     className="w-full"
                     style={{ maxHeight: '480px' }}
@@ -276,7 +278,6 @@ export default function LearnPage() {
                     onTimeUpdate={handleVideoTimeUpdate}
                     onSeeked={handleVideoSeeked}
                   >
-                    <source src={activeLesson.contentUrl} />
                     Your browser does not support video playback.
                   </video>
                 </div>

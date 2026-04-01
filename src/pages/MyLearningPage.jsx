@@ -13,8 +13,13 @@ export default function MyLearningPage() {
 
   useEffect(() => {
     enrollmentAPI.getMyEnrollments()
-      .then(r => setEnrollments(r?.data || []))
-      .catch(() => {})
+      .then(r => {
+        console.log('My Enrollments loaded:', r)
+        setEnrollments(r?.data || [])
+      })
+      .catch((err) => {
+        console.error('Failed to load enrollments:', err)
+      })
       .finally(() => setLoading(false))
   }, [])
 
