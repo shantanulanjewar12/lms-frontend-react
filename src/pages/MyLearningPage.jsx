@@ -27,6 +27,16 @@ export default function MyLearningPage() {
     if (tab === 'active') return e.status === 'ACTIVE'
     if (tab === 'completed') return e.status === 'COMPLETED'
     return true
+  }).sort((a, b) => {
+    const aIncomplete = a.status !== 'COMPLETED'
+    const bIncomplete = b.status !== 'COMPLETED'
+    if (aIncomplete !== bIncomplete) return aIncomplete ? -1 : 1
+    const aProgress = Number(a.completionPercentage || 0)
+    const bProgress = Number(b.completionPercentage || 0)
+    if (aProgress !== bProgress) return aProgress - bProgress
+    const aTime = a.enrolledAt ? new Date(a.enrolledAt).getTime() : 0
+    const bTime = b.enrolledAt ? new Date(b.enrolledAt).getTime() : 0
+    return bTime - aTime
   })
 
   return (

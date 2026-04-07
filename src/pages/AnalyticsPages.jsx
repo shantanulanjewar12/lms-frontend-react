@@ -204,29 +204,54 @@ export function StudentAnalyticsPage() {
               </button>
             ))}
           </div>
-          <Button variant="primary" loading={loadingPath} onClick={fetchLearningPath} icon={<Zap size={15} />}>
-            Generate My Path
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="primary" loading={loadingPath} onClick={fetchLearningPath} icon={<Zap size={15} />}>
+              Build My Professional Path
+            </Button>
+            {!!goal && <Badge variant="brand">Goal: {goal}</Badge>}
+          </div>
 
           {learningPath && (
-            <div className="mt-6 p-5 rounded-2xl animate-fade-up" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
-              <h3 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                Path: {learningPath.goalTitle}
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>{learningPath.description}</p>
+            <div className="mt-6 p-6 rounded-2xl animate-fade-up"
+              style={{
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.10) 0%, rgba(236,72,153,0.08) 100%)',
+                border: '1px solid var(--border)',
+              }}>
+              <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+                <div>
+                  <h3 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1.15rem', color: 'var(--text-primary)' }}>
+                    Career Path: {learningPath.goalTitle}
+                  </h3>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.3rem', maxWidth: '650px' }}>
+                    {learningPath.description}
+                  </p>
+                </div>
+                <Badge variant="success">{learningPath.recommendedCourseIds?.length || 0} curated steps</Badge>
+              </div>
+
               {learningPath.recommendedCourseIds?.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-3">
                   {(recommendedCourses.length > 0 ? recommendedCourses : learningPath.recommendedCourseIds.map(id => ({ id, title: `Course #${id}` }))).map((course, i) => (
-                    <Link key={course.id} to={`/courses/${course.id}`}>
-                      <span className="px-3 py-1.5 rounded-lg text-sm font-semibold"
-                        style={{ background: 'var(--brand)', color: 'white', fontFamily: 'Sora, sans-serif' }}>
-                        Step {i + 1}: {course.title}
-                      </span>
+                    <Link key={course.id} to={`/courses/${course.id}`} className="block">
+                      <div className="rounded-xl p-3 flex items-center gap-3 transition-all card-hover"
+                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                          style={{ background: 'var(--brand)', color: 'white', fontWeight: 800, fontFamily: 'Sora, sans-serif', fontSize: '0.8rem' }}>
+                          {i + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{course.title}</p>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Recommended milestone step</p>
+                        </div>
+                        <ArrowRight size={16} style={{ color: 'var(--text-muted)' }} />
+                      </div>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Enroll in more courses and revisit for personalised recommendations.</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Enroll in more courses and revisit for personalized recommendations.
+                </p>
               )}
             </div>
           )}
@@ -244,6 +269,7 @@ export function InstructorAnalyticsPage() {
   const [insights, setInsights] = useState(null)
   const [courses, setCourses] = useState([])
   const [selectedCourse, setSelectedCourse] = useState(null)
+  const [courseQuery, setCourseQuery] = useState('')
   const [difficulty, setDifficulty] = useState([])
   const [engagement, setEngagement] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -284,6 +310,16 @@ export function InstructorAnalyticsPage() {
   const hardestLesson = difficulty.length
     ? [...difficulty].sort((a, b) => (b.difficultyScore || 0) - (a.difficultyScore || 0))[0]
     : null
+  const filteredCourses = courses.filter(c =>
+    !courseQuery || c.title?.toLowerCase().includes(courseQuery.toLowerCase())
+  )
+  const selectedCourseObj = courses.find(c => c.id === selectedCourse)
+  const watchSeconds = engagement?.averageWatchTimeSeconds || 0
+  const watchMinutesLabel = watchSeconds <= 0
+    ? '0 min'
+    : watchSeconds < 60
+      ? '<1 min'
+      : `${(watchSeconds / 60).toFixed(1)} min`
 
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', paddingTop: '80px' }}>
@@ -320,19 +356,38 @@ export function InstructorAnalyticsPage() {
 
         {/* Course selector */}
         {courses.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {courses.map(c => (
-              <button key={c.id} onClick={() => selectCourse(c.id)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  background: selectedCourse === c.id ? 'var(--brand)' : 'var(--bg-secondary)',
-                  color: selectedCourse === c.id ? 'white' : 'var(--text-secondary)',
-                  border: `1.5px solid ${selectedCourse === c.id ? 'var(--brand)' : 'var(--border)'}`,
-                  cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-                }}>
-                {c.title}
-              </button>
-            ))}
+          <div className="rounded-2xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, color: 'var(--text-primary)' }}>Course Scope</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{courses.length} total courses</p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  value={courseQuery}
+                  onChange={e => setCourseQuery(e.target.value)}
+                  placeholder="Search course..."
+                  className="input-field px-3 py-2 rounded-xl text-sm"
+                  style={{ minWidth: '220px' }}
+                />
+                <select
+                  value={selectedCourse || ''}
+                  onChange={(e) => selectCourse(Number(e.target.value))}
+                  className="input-field px-3 py-2 rounded-xl text-sm"
+                  style={{ minWidth: '280px', fontFamily: 'Sora, sans-serif' }}
+                >
+                  {filteredCourses.map(c => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {selectedCourseObj && (
+              <div className="mt-3 px-3 py-2 rounded-xl" style={{ background: 'var(--bg-tertiary)' }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Selected</p>
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedCourseObj.title}</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -356,7 +411,7 @@ export function InstructorAnalyticsPage() {
                   {[
                     { label: 'Total Enrollments', value: engagement.totalEnrollments, icon: Users },
                     { label: 'Completion Rate', value: `${Math.round(engagement.completionRate || 0)}%`, icon: CheckCircle },
-                    { label: 'Avg Watch Time', value: `${Math.round((engagement.averageWatchTimeSeconds || 0) / 60)} min`, icon: Clock },
+                    { label: 'Avg Watch Time', value: watchMinutesLabel, icon: Clock },
                   ].map(m => (
                     <div key={m.label} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--bg-tertiary)' }}>
                       <m.icon size={18} style={{ color: 'var(--brand)' }} />

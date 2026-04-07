@@ -23,6 +23,7 @@ export default function LearnPage() {
   const [quizQuestions, setQuizQuestions] = useState([])
   const [quizAnswers, setQuizAnswers] = useState({})
   const [quizResult, setQuizResult] = useState(null)
+  const [quizAttempts, setQuizAttempts] = useState([])
   const [quizLoading, setQuizLoading] = useState(false)
   const [submittingQuiz, setSubmittingQuiz] = useState(false)
   const lastVideoTimeRef = useRef(0)
@@ -44,7 +45,7 @@ export default function LearnPage() {
         const pRes = await progressAPI.getCourseProgress(courseId)
         setProgress(pRes?.data)
       } catch (e) {
-        // lessons still loaded
+        toast.error(e?.message || 'Failed to load course content')
       } finally {
         setLoading(false)
       }
@@ -71,14 +72,19 @@ export default function LearnPage() {
         setQuizQuestions([])
         setQuizAnswers({})
         setQuizResult(null)
+        setQuizAttempts([])
         return
       }
       setQuizLoading(true)
       setQuizResult(null)
       setQuizAnswers({})
       try {
-        const res = await quizAPI.getByLesson(activeLesson.id)
-        setQuizQuestions(res?.data || [])
+        const [questionsRes, attemptsRes] = await Promise.all([
+          quizAPI.getByLesson(activeLesson.id),
+          quizAPI.getAttemptsByLesson(activeLesson.id),
+        ])
+        setQuizQuestions(questionsRes?.data || [])
+        setQuizAttempts(attemptsRes?.data || [])
       } catch (e) {
         toast.error(e?.message || 'Failed to load quiz')
       } finally {
@@ -165,6 +171,12 @@ export default function LearnPage() {
       const res = await quizAPI.submitByLesson(activeLesson.id, answers)
       setQuizResult(res?.data)
       toast.success(`Quiz submitted. Score: ${Math.round(res?.data?.scorePercent || 0)}%`)
+      try {
+        const attemptsRes = await quizAPI.getAttemptsByLesson(activeLesson.id)
+        setQuizAttempts(attemptsRes?.data || [])
+      } catch {
+        // Keep submit success even if attempt refresh fails.
+      }
     } catch (e) {
       toast.error(e?.message || 'Quiz submission failed')
     } finally {
@@ -355,6 +367,24 @@ export default function LearnPage() {
                               <p key={r.questionId} style={{ fontSize: '0.82rem', color: r.isCorrect ? '#10b981' : '#f97316' }}>
                                 Q{i + 1}: {r.isCorrect ? 'Correct' : `Wrong (Correct: ${(r.correctOptions || []).join(', ')})`}
                               </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {quizAttempts.length > 0 && (
+                        <div className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                          <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.6rem' }}>Previous Attempts</p>
+                          <div className="space-y-2">
+                            {quizAttempts.slice(0, 5).map((attempt, i) => (
+                              <div key={attempt.id || i} className="flex items-center justify-between" style={{ fontSize: '0.82rem' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>
+                                  Attempt {quizAttempts.length - i} • {attempt.submittedAt ? new Date(attempt.submittedAt).toLocaleString() : 'Unknown time'}
+                                </span>
+                                <span style={{ color: '#10b981', fontWeight: 700 }}>
+                                  {Math.round(attempt.scorePercent || 0)}%
+                                </span>
+                              </div>
                             ))}
                           </div>
                         </div>
