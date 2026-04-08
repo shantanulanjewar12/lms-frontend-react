@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, Play, CheckCircle, Clock } from 'lucide-react'
+import { BookOpen, Play, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { enrollmentAPI } from '../api'
 import { useAuthStore } from '../store'
 import { Badge, Progress, Skeleton, EmptyState, Button, Tabs } from '../components/ui/index'
@@ -8,23 +8,31 @@ import { Badge, Progress, Skeleton, EmptyState, Button, Tabs } from '../componen
 export default function MyLearningPage() {
   const { user } = useAuthStore()
   const [enrollments, setEnrollments] = useState([])
+  const [learningSummary, setLearningSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('all')
 
   useEffect(() => {
-    enrollmentAPI.getMyEnrollments()
-      .then(r => {
-        console.log('My Enrollments loaded:', r)
-        setEnrollments(r?.data || [])
-      })
-      .catch((err) => {
-        console.error('Failed to load enrollments:', err)
-      })
-      .finally(() => setLoading(false))
+    const loadData = async () => {
+      try {
+        const [enrollmentsRes, summaryRes] = await Promise.all([
+          enrollmentAPI.getMyEnrollments(),
+          enrollmentAPI.getLearningSummary(),
+        ])
+        setEnrollments(enrollmentsRes?.data || [])
+        setLearningSummary(summaryRes?.data || null)
+      } catch (err) {
+        console.error('Failed to load enrollments or summary:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
   const filtered = enrollments.filter(e => {
-    if (tab === 'active') return e.status === 'ACTIVE'
+    if (tab === 'active') return e.status === 'ACTIVE' && !e.accessExpired
     if (tab === 'completed') return e.status === 'COMPLETED'
     return true
   }).sort((a, b) => {
@@ -48,6 +56,22 @@ export default function MyLearningPage() {
             My Learning
           </h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.4rem' }}>{enrollments.length} courses enrolled</p>
+          {learningSummary && (
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Total learning</p>
+                <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>{learningSummary.formattedTotalTime}</p>
+              </div>
+              <div className="rounded-2xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Today</p>
+                <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>{learningSummary.formattedTodayTime}</p>
+              </div>
+              <div className="rounded-2xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Last 7 days</p>
+                <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>{learningSummary.formattedWeeklyTime}</p>
+              </div>
+            </div>
+          )}
           <div className="mt-5">
             <Tabs
               tabs={[
@@ -111,14 +135,58 @@ export default function MyLearningPage() {
                     </div>
                     <Progress value={e.completionPercentage || 0} />
                   </div>
+
+                  {/* Learning Time */}
+                  {e.formattedLearningTime && (
+                    <div className="mb-2 flex items-center gap-2" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <Clock size={12} />
+                      <span>Learning: <strong>{e.formattedLearningTime}</strong></span>
+                    </div>
+                  )}
+
+                  {/* Expiry Info */}
+                  {e.expiresAt && (
+                    <div className={`mb-3 p-2 rounded-lg flex items-start gap-2 text-xs`}
+                      style={{
+                        background: e.accessExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                        color: e.accessExpired ? '#ef4444' : '#22c55e'
+                      }}>
+                      {e.accessExpired ? (
+                        <>
+                          <AlertCircle size={12} style={{ marginTop: '2px' }} />
+                          <div>
+                            <p style={{ fontWeight: 700 }}>Access Expired</p>
+                            <p>Expired on {new Date(e.expiresAt).toLocaleDateString()}</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Clock size={12} style={{ marginTop: '2px' }} />
+                          <div>
+                            <p style={{ fontWeight: 700 }}>Expires in {e.remainingDays} days</p>
+                            <p>{new Date(e.expiresAt).toLocaleDateString()}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-4">
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Clock size={12} /> {new Date(e.enrolledAt).toLocaleDateString()}
                     </span>
                     <Link to={`/learn/${e.courseId}`}>
                       <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all"
-                        style={{ background: 'var(--brand)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
-                        <Play size={12} fill="white" />
+                        style={{ 
+                          background: e.accessExpired ? '#e5e7eb' : 'var(--brand)', 
+                          color: e.accessExpired ? '#6b7280' : 'white', 
+                          border: 'none', 
+                          cursor: e.accessExpired ? 'not-allowed' : 'pointer', 
+                          fontFamily: 'Sora, sans-serif',
+                          opacity: e.accessExpired ? 0.6 : 1
+                        }}
+                        disabled={e.accessExpired}>
+                        <Play size={12} fill={e.accessExpired ? '#6b7280' : 'white'} />
                         {e.status === 'COMPLETED' ? 'Review' : 'Continue'}
                       </button>
                     </Link>

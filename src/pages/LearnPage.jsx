@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, Circle, Play, FileText, HelpCircle, ChevronLeft, ChevronRight, Lock } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Circle, Play, FileText, HelpCircle, ChevronLeft, ChevronRight, Lock, Clock } from 'lucide-react'
 import { lessonAPI, progressAPI, enrollmentAPI, quizAPI } from '../api'
 import { useAuthStore } from '../store'
 import { Badge, Progress, Button } from '../components/ui/index'
@@ -20,6 +20,8 @@ export default function LearnPage() {
   const [loading, setLoading] = useState(true)
   const [marking, setMarking] = useState(false)
   const [enrolled, setEnrolled] = useState(false)
+  const [learningTime, setLearningTime] = useState(null)
+  const [enrollmentData, setEnrollmentData] = useState(null)
   const [quizQuestions, setQuizQuestions] = useState([])
   const [quizAnswers, setQuizAnswers] = useState({})
   const [quizResult, setQuizResult] = useState(null)
@@ -28,6 +30,8 @@ export default function LearnPage() {
   const [submittingQuiz, setSubmittingQuiz] = useState(false)
   const lastVideoTimeRef = useRef(0)
   const watchedSecondsRef = useRef(0)
+  const quizStartTimeRef = useRef(null)
+  const documentStartTimeRef = useRef(null)
   const activeLesson = lessons[activeIdx]
   const progressList = progress?.lessonProgressList || []
 
@@ -44,6 +48,17 @@ export default function LearnPage() {
         setEnrolled(enRes?.data || false)
         const pRes = await progressAPI.getCourseProgress(courseId)
         setProgress(pRes?.data)
+        
+        // Fetch learning time and enrollment data
+        try {
+          const enrollmentRes = await enrollmentAPI.getEnrollmentDetails(courseId)
+          if (enrollmentRes?.data) {
+            setEnrollmentData(enrollmentRes.data)
+            setLearningTime(enrollmentRes.data.formattedLearningTime)
+          }
+        } catch (e) {
+          // Learning time fetch is optional, don't fail if unavailable
+        }
       } catch (e) {
         toast.error(e?.message || 'Failed to load course content')
       } finally {
@@ -64,6 +79,13 @@ export default function LearnPage() {
   useEffect(() => {
     lastVideoTimeRef.current = 0
     watchedSecondsRef.current = 0
+    quizStartTimeRef.current = null
+    documentStartTimeRef.current = null
+    return () => {
+      sendAccumulatedWatchTime()
+      trackQuizTime()
+      trackDocumentTime()
+    }
   }, [activeIdx])
 
   useEffect(() => {
@@ -73,8 +95,13 @@ export default function LearnPage() {
         setQuizAnswers({})
         setQuizResult(null)
         setQuizAttempts([])
+        quizStartTimeRef.current = null
+        documentStartTimeRef.current = null
         return
       }
+      // Initialize quiz start time when loading quiz
+      quizStartTimeRef.current = Date.now()
+      documentStartTimeRef.current = null
       setQuizLoading(true)
       setQuizResult(null)
       setQuizAnswers({})
@@ -94,12 +121,69 @@ export default function LearnPage() {
     loadQuiz()
   }, [activeLesson?.id, activeLesson?.contentType])
 
+  // Track document reading time
+  useEffect(() => {
+    if (activeLesson?.contentType === 'DOCUMENT') {
+      documentStartTimeRef.current = Date.now()
+      quizStartTimeRef.current = null
+    }
+  }, [activeLesson?.id, activeLesson?.contentType])
+
   const logLearningEvent = async (eventType, value = null) => {
     if (!activeLesson?.id) return
     try {
       await progressAPI.logEvent({ lessonId: activeLesson.id, eventType, value })
     } catch (e) {
       // Keep playback smooth even if analytics event logging fails.
+    }
+  }
+
+  const trackLearningTime = async (durationSeconds) => {
+    if (durationSeconds <= 0 || !enrolled) return
+    try {
+      const eventType = activeLesson?.contentType === 'DOCUMENT'
+        ? 'DOCUMENT_READ'
+        : activeLesson?.contentType === 'QUIZ'
+          ? 'QUIZ_ATTEMPT'
+          : 'VIDEO_WATCH'
+
+      await enrollmentAPI.trackLearningActivity(courseId, durationSeconds, activeLesson?.id, eventType)
+      // Optionally refresh enrollment data to get updated learning time
+      const enrollmentRes = await enrollmentAPI.getEnrollmentDetails(courseId)
+      if (enrollmentRes?.data) {
+        setEnrollmentData(enrollmentRes.data)
+        setLearningTime(enrollmentRes.data.formattedLearningTime)
+      }
+    } catch (e) {
+      // Learning time tracking is optional, don't interrupt user experience
+    }
+  }
+
+  const sendAccumulatedWatchTime = async () => {
+    const watchedSeconds = Math.round(watchedSecondsRef.current)
+    if (watchedSeconds <= 0 || !enrolled) return
+
+    watchedSecondsRef.current = 0
+    lastVideoTimeRef.current = 0
+
+    await trackLearningTime(watchedSeconds)
+  }
+
+  const trackQuizTime = async () => {
+    if (!quizStartTimeRef.current || !enrolled) return
+    const elapsedSeconds = Math.round((Date.now() - quizStartTimeRef.current) / 1000)
+    if (elapsedSeconds > 0) {
+      quizStartTimeRef.current = null
+      await trackLearningTime(elapsedSeconds)
+    }
+  }
+
+  const trackDocumentTime = async () => {
+    if (!documentStartTimeRef.current || !enrolled) return
+    const elapsedSeconds = Math.round((Date.now() - documentStartTimeRef.current) / 1000)
+    if (elapsedSeconds > 0) {
+      documentStartTimeRef.current = null
+      await trackLearningTime(elapsedSeconds)
     }
   }
 
@@ -139,11 +223,18 @@ export default function LearnPage() {
     if (!activeLesson) return
     setMarking(true)
     try {
+      const watchedSeconds = Math.round(watchedSecondsRef.current)
       await progressAPI.updateLesson({
         lessonId: activeLesson.id,
         isCompleted: true,
-        watchDurationSeconds: Math.round(watchedSecondsRef.current),
+        watchDurationSeconds: watchedSeconds,
       })
+      
+      // Track the learning time
+      if (watchedSeconds > 0) {
+        await trackLearningTime(watchedSeconds)
+      }
+      
       const pRes = await progressAPI.getCourseProgress(courseId)
       setProgress(pRes?.data)
       toast.success('Lesson marked complete! ✅')
@@ -171,6 +262,10 @@ export default function LearnPage() {
       const res = await quizAPI.submitByLesson(activeLesson.id, answers)
       setQuizResult(res?.data)
       toast.success(`Quiz submitted. Score: ${Math.round(res?.data?.scorePercent || 0)}%`)
+      
+      // Track quiz time spent
+      await trackQuizTime()
+      
       try {
         const attemptsRes = await quizAPI.getAttemptsByLesson(activeLesson.id)
         setQuizAttempts(attemptsRes?.data || [])
@@ -190,8 +285,6 @@ export default function LearnPage() {
     </div>
   )
 
-  const completionPct = progress?.completionPercentage || 0
-
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', paddingTop: '64px' }}>
       <div className="flex h-[calc(100vh-64px)]">
@@ -207,13 +300,31 @@ export default function LearnPage() {
             <h2 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
               Course Content
             </h2>
-            <div className="mb-4">
+            <div className="mb-6">
               <div className="flex justify-between mb-1">
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Your progress</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand)' }}>{Math.round(completionPct)}%</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand)' }}>{Math.round(progress?.completionPercentage || 0)}%</span>
               </div>
-              <Progress value={completionPct} />
+              <Progress value={progress?.completionPercentage || 0} />
             </div>
+
+            {/* Learning Time Card */}
+            {learningTime && (
+              <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock size={16} style={{ color: 'var(--brand)' }} />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Learning Time</span>
+                </div>
+                <p style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {learningTime}
+                </p>
+                {enrollmentData?.lastAccessedAt && (
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                    Last accessed: {new Date(enrollmentData.lastAccessedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Lesson List */}
@@ -289,6 +400,8 @@ export default function LearnPage() {
                     onPlay={handleVideoPlay}
                     onTimeUpdate={handleVideoTimeUpdate}
                     onSeeked={handleVideoSeeked}
+                    onPause={sendAccumulatedWatchTime}
+                    onEnded={sendAccumulatedWatchTime}
                   >
                     Your browser does not support video playback.
                   </video>

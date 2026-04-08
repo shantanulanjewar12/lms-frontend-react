@@ -4,7 +4,7 @@ import {
   TrendingUp, BookOpen, CheckCircle, Flame, Target, BarChart3,
   ArrowRight, Zap, Users, Star, Clock, AlertTriangle, Activity
 } from 'lucide-react'
-import { analyticsAPI, engagementAPI, courseAPI, userAPI, paymentAPI } from '../api'
+import { analyticsAPI, enrollmentAPI, engagementAPI, courseAPI, userAPI, paymentAPI } from '../api'
 import { useAuthStore } from '../store'
 import { Badge, Progress, Skeleton, Button, EmptyState } from '../components/ui/index'
 import toast from 'react-hot-toast'
@@ -15,6 +15,7 @@ import toast from 'react-hot-toast'
 export function StudentAnalyticsPage() {
   const { user } = useAuthStore()
   const [summary, setSummary] = useState(null)
+  const [timeSummary, setTimeSummary] = useState(null)
   const [badges, setBadges] = useState([])
   const [streak, setStreak] = useState(null)
   const [learningPath, setLearningPath] = useState(null)
@@ -28,12 +29,14 @@ export function StudentAnalyticsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [sumRes, badgeRes, streakRes] = await Promise.allSettled([
+        const [sumRes, timeRes, badgeRes, streakRes] = await Promise.allSettled([
           analyticsAPI.getStudentSummary(user.id),
+          enrollmentAPI.getLearningSummary(),
           engagementAPI.getBadges(user.id),
           engagementAPI.getStreak(user.id),
         ])
         if (sumRes.status === 'fulfilled') setSummary(sumRes.value?.data)
+        if (timeRes.status === 'fulfilled') setTimeSummary(timeRes.value?.data)
         if (badgeRes.status === 'fulfilled') setBadges(badgeRes.value?.data || [])
         if (streakRes.status === 'fulfilled') setStreak(streakRes.value?.data)
       } catch (e) { /* silent */ }
@@ -109,6 +112,109 @@ export function StudentAnalyticsPage() {
             </div>
           ))}
         </div>
+
+        {timeSummary && (
+          <div className="rounded-3xl p-8" style={{ background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%)', border: '2px solid var(--border)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
+                  📊 Learning Time Tracking
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Your learning activity over the last 7 days</p>
+              </div>
+              <div className="text-right">
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Learning</p>
+                <p style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '2rem', color: '#6366f1', marginTop: '0.2rem' }}>
+                  {timeSummary.formattedTotalTime}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+              {[
+                { label: 'Today', value: timeSummary.formattedTodayTime, icon: '⭐', color: '#f97316' },
+                { label: 'This Week', value: timeSummary.formattedWeeklyTime, icon: '📈', color: '#10b981' },
+                { label: 'Longest Session', value: timeSummary.dailyLearningTimes?.length > 0 ? Math.max(...timeSummary.dailyLearningTimes.map(d => d.seconds)) + ' sec' : '—', icon: '⚡', color: '#8b5cf6' },
+              ].map(item => (
+                <div key={item.label} className="rounded-2xl p-4 relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-105"
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
+                  <div className="absolute top-0 right-0 text-2xl opacity-20" style={{ transform: 'translate(20%, -20%)' }}>{item.icon}</div>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>
+                    {item.label}
+                  </p>
+                  <p style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1.3rem', color: item.color }}>
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Daily Breakdown */}
+            <div>
+              <h3 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem' }}>
+                Daily Breakdown
+              </h3>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {timeSummary.dailyLearningTimes?.length > 0 ? (
+                  timeSummary.dailyLearningTimes.map((day, idx) => {
+                    const maxSeconds = Math.max(...timeSummary.dailyLearningTimes.map(d => d.seconds), 1)
+                    const percentage = (day.seconds / maxSeconds) * 100
+                    const getColorByIntensity = (pct) => {
+                      if (pct < 20) return { bg: '#f0fdf4', border: '#dcfce7', text: '#15803d', bar: '#86efac' }
+                      if (pct < 40) return { bg: '#f0f9ff', border: '#cffafe', text: '#0369a1', bar: '#67e8f9' }
+                      if (pct < 60) return { bg: '#fef3c7', border: '#fce7f3', text: '#b45309', bar: '#fbbf24' }
+                      if (pct < 80) return { bg: '#fed7aa', border: '#fed7aa', text: '#d97706', bar: '#fb923c' }
+                      return { bg: '#fee2e2', border: '#fecaca', text: '#dc2626', bar: '#ef4444' }
+                    }
+                    const colors = getColorByIntensity(percentage)
+                    return (
+                      <div key={day.date} className="group relative rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg"
+                        style={{ background: colors.bg, border: `2px solid ${colors.border}` }}>
+                        <div className="absolute top-0 left-0 h-full" style={{ width: `${percentage}%`, background: colors.bar, opacity: 0.15, transition: 'width 0.3s ease' }} />
+                        <div className="relative p-4 flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span style={{ fontSize: '1.1rem' }}>
+                                {idx === 0 ? '📅' : idx === 1 ? '🕐' : idx === 2 ? '📆' : '📊'}
+                              </span>
+                              <p style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, color: colors.text }}>
+                                {day.date}
+                              </p>
+                              {day.seconds > 0 && (
+                                <span style={{ fontSize: '0.7rem', background: colors.bar, color: '#fff', padding: '0.15rem 0.4rem', borderRadius: '0.4rem', marginLeft: 'auto' }}>
+                                  +{day.seconds}s
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <p style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: colors.text }}>
+                                {day.formattedTime}
+                              </p>
+                              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>spent learning</p>
+                            </div>
+                          </div>
+                          <div className="text-right ml-4 flex-shrink-0">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl" style={{ background: colors.bar, color: '#fff' }}>
+                              <span style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '0.8rem' }}>
+                                {Math.round(percentage)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-12" style={{ background: 'var(--bg-tertiary)', borderRadius: '1rem' }}>
+                    <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📚</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No learning activity yet. Start watching videos to track your progress!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Streak Details */}
