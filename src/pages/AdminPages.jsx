@@ -11,22 +11,31 @@ export function AdminUsersPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalUsers, setTotalUsers] = useState(0)
   const [tab, setTab] = useState('all')
 
   useEffect(() => {
     loadUsers()
-  }, [page])
+  }, [page, search, tab])
 
   const loadUsers = async () => {
     setLoading(true)
     try {
-      const res = await userAPI.getAllUsers(page, 10)
+      const role = tab === 'all' ? '' : tab.toUpperCase()
+      const res = await userAPI.getAllUsers(page, 10, search, role)
       const data = res?.data
       if (data?.content) {
         setUsers(data.content)
         setTotalPages(data.totalPages || 1)
+        setTotalUsers(data.totalElements ?? data.content.length)
       } else if (Array.isArray(data)) {
         setUsers(data)
+        setTotalPages(1)
+        setTotalUsers(data.length)
+      } else {
+        setUsers([])
+        setTotalPages(1)
+        setTotalUsers(0)
       }
     } catch (e) {
       toast.error('Failed to load users')
@@ -57,11 +66,7 @@ export function AdminUsersPage() {
     }
   }
 
-  const filtered = users.filter(u => {
-    const matchesSearch = !search || u.fullName?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
-    const matchesTab = tab === 'all' || u.role === tab.toUpperCase()
-    return matchesSearch && matchesTab
-  })
+  const filtered = users
 
   const roleColors = { STUDENT: 'brand', INSTRUCTOR: 'purple', ADMIN: 'danger' }
   const statusColors = { ACTIVE: 'success', INACTIVE: 'gray', SUSPENDED: 'danger' }
@@ -74,12 +79,15 @@ export function AdminUsersPage() {
             <h1 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 800, fontSize: '2rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               User Management
             </h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>{users.length} total users</p>
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>{totalUsers} total users</p>
           </div>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
             <input className="input-field pl-9 pr-4 py-2.5 rounded-xl text-sm" placeholder="Search users..."
-              style={{ width: '250px' }} value={search} onChange={e => setSearch(e.target.value)} />
+              style={{ width: '250px' }} value={search} onChange={e => {
+                setSearch(e.target.value)
+                setPage(0)
+              }} />
           </div>
         </div>
 
@@ -93,7 +101,10 @@ export function AdminUsersPage() {
               { label: 'Admins', value: 'admin' },
             ]}
             activeTab={tab}
-            onTabChange={setTab}
+            onTabChange={(next) => {
+              setTab(next)
+              setPage(0)
+            }}
           />
         </div>
 

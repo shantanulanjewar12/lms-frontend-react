@@ -3,6 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store'
 
 export default function ProtectedRoute({ children, roles = [] }) {
+
+  
   const { isAuthenticated, user } = useAuthStore()
   const location = useLocation()
 
@@ -15,4 +17,6 @@ export default function ProtectedRoute({ children, roles = [] }) {
   }
 
   return children
+
 }
+

@@ -86,7 +86,20 @@ function StudentDashboard({ user }) {
           engagementAPI.getStreak(user.id),
           engagementAPI.getLeaderboard(),
         ])
-        if (enRes.status === 'fulfilled') setEnrollments(enRes.value?.data || [])
+        if (enRes.status === 'fulfilled') {
+          const ordered = [...(enRes.value?.data || [])].sort((a, b) => {
+            const aIncomplete = a.status !== 'COMPLETED'
+            const bIncomplete = b.status !== 'COMPLETED'
+            if (aIncomplete !== bIncomplete) return aIncomplete ? -1 : 1
+            const aProgress = Number(a.completionPercentage || 0)
+            const bProgress = Number(b.completionPercentage || 0)
+            if (aProgress !== bProgress) return aProgress - bProgress
+            const aTime = a.enrolledAt ? new Date(a.enrolledAt).getTime() : 0
+            const bTime = b.enrolledAt ? new Date(b.enrolledAt).getTime() : 0
+            return bTime - aTime
+          })
+          setEnrollments(ordered)
+        }
         if (sumRes.status === 'fulfilled') setSummary(sumRes.value?.data)
         if (badgeRes.status === 'fulfilled') setBadges(badgeRes.value?.data || [])
         if (streakRes.status === 'fulfilled') setStreak(streakRes.value?.data)

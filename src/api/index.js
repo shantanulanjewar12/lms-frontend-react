@@ -48,7 +48,12 @@ export const userAPI = {
     fd.append('file', file)
     return api.post('/users/me/profile-picture', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
-  getAllUsers: (page = 0, size = 10) => api.get(`/users?page=${page}&size=${size}`),
+  getAllUsers: (page = 0, size = 10, search = '', role = '') => {
+    let url = `/users?page=${page}&size=${size}`
+    if (search && search.trim()) url += `&search=${encodeURIComponent(search.trim())}`
+    if (role) url += `&role=${encodeURIComponent(role)}`
+    return api.get(url)
+  },
   updateStatus: (id, status) => api.put(`/users/${id}/status?status=${status}`),
   deleteUser: (id) => api.delete(`/users/${id}`),
 }
@@ -92,6 +97,8 @@ export const quizAPI = {
   getByLesson: (lessonId) => api.get(`/lessons/${lessonId}/quiz`),
   upsertByLesson: (lessonId, questions) => api.put(`/lessons/${lessonId}/quiz`, questions),
   submitByLesson: (lessonId, answers) => api.post(`/lessons/${lessonId}/quiz/submit`, { answers }),
+  getAttemptsByLesson: (lessonId) => api.get(`/lessons/${lessonId}/quiz/attempts`),
+  getLatestAttemptByLesson: (lessonId) => api.get(`/lessons/${lessonId}/quiz/attempts/latest`),
 }
 
 // ── Enrollment ──
@@ -100,6 +107,17 @@ export const enrollmentAPI = {
   getMyEnrollments: () => api.get('/enrollments/my'),
   checkEnrolled: (courseId) => api.get(`/enrollments/course/${courseId}/check`),
   getStudents: (courseId) => api.get(`/enrollments/course/${courseId}/students`),
+  getEnrollmentDetails: (courseId) => api.get(`/learning-activity/${courseId}`),
+  getLearningTime: (courseId) => api.get(`/learning-activity/${courseId}/learning-time`),
+  trackLearningActivity: (courseId, durationSeconds, lessonId = null, eventType = null) => {
+    const params = new URLSearchParams();
+    params.append('durationSeconds', durationSeconds);
+    if (lessonId) params.append('lessonId', lessonId);
+    if (eventType) params.append('eventType', eventType);
+    return api.post(`/learning-activity/track/${courseId}?${params.toString()}`);
+  },
+  getLearningSummary: () => api.get('/learning-activity/summary'),
+  checkAccessStatus: (courseId) => api.get(`/learning-activity/${courseId}/access-status`),
 }
 
 // ── Progress ──

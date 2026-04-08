@@ -5,10 +5,15 @@ import { GraduationCap, Github, Twitter, Linkedin, Heart } from 'lucide-react'
 export default function Footer() {
   return (
     <footer style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}>
+
       <div className="max-w-7xl mx-auto px-6 py-16">
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+
           <div className="md:col-span-2">
+
             <div className="flex items-center gap-2.5 mb-4">
+
               <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}>
                 <GraduationCap size={22} color="white" />
@@ -20,6 +25,7 @@ export default function Footer() {
             <p style={{ color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: '320px', fontSize: '0.9rem' }}>
               Build your future with world-class courses. Learn at your pace, track your progress, and grow every day.
             </p>
+
             <div className="flex gap-3 mt-6">
               {[Github, Twitter, Linkedin].map((Icon, i) => (
                 <a key={i} href="#"
@@ -29,6 +35,7 @@ export default function Footer() {
                 </a>
               ))}
             </div>
+
           </div>
           <div>
             <h4 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem' }}>Platform</h4>
@@ -44,6 +51,7 @@ export default function Footer() {
               ))}
             </ul>
           </div>
+
           <div>
             <h4 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem' }}>Support</h4>
             <ul className="space-y-2.5">
@@ -59,6 +67,7 @@ export default function Footer() {
             </ul>
           </div>
         </div>
+        
         <div className="mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4"
           style={{ borderTop: '1px solid var(--border)' }}>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>

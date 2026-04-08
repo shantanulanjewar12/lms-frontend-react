@@ -128,9 +128,10 @@ export default function CoursesPage() {
   const [totalPages, setTotalPages] = useState(0)
   const [showFilters, setShowFilters] = useState(false)
 
+  // Fetch courses when page, level, category, or search changes
   useEffect(() => {
     fetchCourses()
-  }, [level, category, page])
+  }, [level, category, page, search])
 
   const fetchCourses = async () => {
     setLoading(true)
@@ -138,24 +139,29 @@ export default function CoursesPage() {
       let params = `?page=${page}&size=9`
       if (category) params += `&category=${encodeURIComponent(category)}`
       if (level) params += `&level=${level}`
+      if (search) params += `&search=${encodeURIComponent(search)}`
       const res = await courseAPI.getAll(params)
-      const data = res?.data
-      if (data?.content) {
-        setCourses(data.content)
-        setTotalPages(data.totalPages || 1)
-      } else if (Array.isArray(data)) {
-        setCourses(data)
+      const payload = res?.data
+      if (payload?.content) {
+        setCourses(payload.content)
+        setTotalPages(payload.totalPages || 1)
+      } else if (Array.isArray(payload)) {
+        setCourses(payload)
+        setTotalPages(1)
+      } else {
+        setCourses([])
+        setTotalPages(0)
       }
     } catch {
       setCourses([])
+      setTotalPages(0)
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredCourses = courses.filter(c =>
-    !search || c.title.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredCourses = courses
+
 
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
@@ -174,7 +180,10 @@ export default function CoursesPage() {
               className="input-field pl-12 pr-4 py-3.5 rounded-2xl text-base"
               placeholder="Search courses, topics, skills..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                setSearch(e.target.value)
+                setPage(0)
+              }}
             />
           </div>
         </div>

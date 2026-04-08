@@ -185,7 +185,7 @@ export function RegisterPage() {
       {!awaitingOtp ? (
         <>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input label="Full Name" placeholder="John Doe"
+            <Input label="Full Name" placeholder="Enter Your Name"
               icon={<User size={16} />}
               value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} required />
             <Input label="Email" type="email" placeholder="you@example.com"
