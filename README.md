@@ -42,6 +42,160 @@ A professional React frontend for the Mini LMS Spring Boot backend.
 
 ---
 
+## 🎨 UI Design — Figma Screenshots
+
+All pages were designed in Figma before implementation. Below are the actual design references used during development.
+
+---
+
+### 🌐 Public Pages
+
+#### 🏠 Home Page (Light Mode)
+> Landing page with hero section, featured courses, and call-to-action
+
+![Home Page](Figma%20Design%20of%20web%20page/1.Home_Page.png)
+
+---
+
+#### 🌙 Home Page (Dark Mode)
+> Dark theme variant of the landing page
+
+![Home Page Dark](Figma%20Design%20of%20web%20page/1.Home_Page_dark_view.png)
+
+---
+
+#### 🔍 Explore / Course Listing Page
+> Browse and filter all available courses
+
+![Explore Page](Figma%20Design%20of%20web%20page/2.Explore_page.png)
+
+---
+
+#### 🏆 Leaderboard Page
+> Top learners ranked by points, badges, and streaks
+
+![Leaderboard Page](Figma%20Design%20of%20web%20page/3.LeaderBoard_page.png)
+
+---
+
+#### 🔐 Login Page
+> JWT-based user authentication
+
+![Login Page](Figma%20Design%20of%20web%20page/4.Login_page.png)
+
+---
+
+#### 📝 Register / New User Page
+> New user sign-up form with validation
+
+![Register Page](Figma%20Design%20of%20web%20page/5.Register_NewUser_page.png)
+
+---
+
+### 🎓 Student (Logged In) Pages
+
+#### 📊 Student Dashboard
+> Overview of enrolled courses, progress, streaks, and activity
+
+![Student Dashboard](Figma%20Design%20of%20web%20page/9.Student_Login_DashBoard_page.png)
+
+---
+
+#### 📚 Student — My Courses
+> List of courses the student is enrolled in
+
+![Student Courses](Figma%20Design%20of%20web%20page/10.Student_Login_Courses_page.png)
+
+---
+
+#### 🎯 Student — My Learning
+> Active lessons, progress tracking, and resume learning
+
+![My Learning](Figma%20Design%20of%20web%20page/11.Student_Login_MyLearning_page.png)
+
+---
+
+#### 📈 Student — Analytics
+> Personal learning analytics, time spent, and performance graphs
+
+![Student Analytics](Figma%20Design%20of%20web%20page/12.StudentLogin_AnalyticsPage.png)
+
+---
+
+#### 🥇 Student — Achievements & Badges
+> Earned badges, streaks, milestones, and rewards
+
+![Achievements](Figma%20Design%20of%20web%20page/13.Student_Login_Achievement_page.png)
+
+---
+
+#### 💳 Student — Payments
+> Enrollment payment history and receipts
+
+![Student Payments](Figma%20Design%20of%20web%20page/14.Student-Login_Payment-page.png)
+
+---
+
+#### 🔔 Student — Notifications
+> Alerts, course announcements, and system updates
+
+![Notifications](Figma%20Design%20of%20web%20page/15.Student_login_Notification.png)
+
+---
+
+### 👨‍🏫 Instructor Pages
+
+#### 🖥️ Instructor Dashboard
+> Overview of published courses, student enrollments, and revenue
+
+![Instructor Dashboard](Figma%20Design%20of%20web%20page/6.InstructorLogin_Dashboard_page.png)
+
+---
+
+#### 📋 Instructor — My Courses
+> Manage, edit, publish, and create courses
+
+![Instructor Courses](Figma%20Design%20of%20web%20page/7.InstructorLogin_MyCourses_page.png)
+
+---
+
+#### 📊 Instructor — Analytics
+> Revenue charts, enrollment trends, and student engagement data
+
+![Instructor Analytics](Figma%20Design%20of%20web%20page/8.Instructor_Analytics_page.png)
+
+---
+
+### 🛡️ Admin Pages
+
+#### 🔑 Admin Login View
+> Admin-specific portal entry
+
+![Admin Login](Figma%20Design%20of%20web%20page/16.Admin_Login-page.png)
+
+---
+
+#### 👥 Admin — User Management
+> View, manage, and moderate all registered users
+
+![User Management](Figma%20Design%20of%20web%20page/17.ADminLogin_user_page.png)
+
+---
+
+#### 💰 Admin — Payment Transactions
+> Platform-wide transaction records and payment history
+
+![Payment Transactions](Figma%20Design%20of%20web%20page/18.AdminLogin_PaymentTransaction_page.png)
+
+---
+
+#### 📊 Admin — Platform Analytics
+> System-wide usage stats, active users, and platform health
+
+![Platform Analytics](Figma%20Design%20of%20web%20page/19.AdminLogin_Platform_Analtics_page.png)
+
+---
+
 ## Setup Instructions
 
 ### Prerequisites
