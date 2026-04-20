@@ -2,6 +2,12 @@
 
 A professional React frontend for the Mini LMS Spring Boot backend.
 
+## 🚀 Live Demo
+
+🔗 **[https://development.dzt6pjgfqs25v.amplifyapp.com/](https://development.dzt6pjgfqs25v.amplifyapp.com/)**
+
+---
+
 ## Tech Stack
 - **React 18** + **Vite**
 - **React Router v6** — client-side routing
