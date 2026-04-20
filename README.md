@@ -1,6 +1,6 @@
-# Lets's Learn — Mini LMS Frontend
+# Lets's Learn — LMS Frontend
 
-A professional React frontend for the Mini LMS Spring Boot backend.
+A professional React frontend for the LMS Spring Boot backend.
 
 ## 🚀 Live Demo
 
